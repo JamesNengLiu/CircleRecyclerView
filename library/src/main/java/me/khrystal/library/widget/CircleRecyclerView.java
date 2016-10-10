@@ -19,7 +19,7 @@ import java.lang.ref.WeakReference;
  * update time:
  * email: 723526676@qq.com
  */
-public class CircleRecyclerView extends RecyclerView implements View.OnClickListener {
+public class CircleRecyclerView extends RecyclerView {
 
     private static final int DEFAULT_SELECTION = Integer.MAX_VALUE >> 1;
 
@@ -68,8 +68,6 @@ public class CircleRecyclerView extends RecyclerView implements View.OnClickList
             smoothScrollToView(mCurrentCenterChildView);
         }
 
-        if (mCurrentCenterChildView != null)
-            mCurrentCenterChildView.setOnClickListener(this);
     }
 
     @Override
@@ -121,8 +119,6 @@ public class CircleRecyclerView extends RecyclerView implements View.OnClickList
             if (mNeedCenterForce && !mIsForceCentering) {
                 mIsForceCentering = true;
                 mCurrentCenterChildView = findViewAtCenter();
-                if (mCurrentCenterChildView != null && mCenterItemClickListener != null)
-                    mCurrentCenterChildView.setOnClickListener(this);
                 mCenterRunnable.setView(mCurrentCenterChildView);
                 ViewCompat.postOnAnimation(this, mCenterRunnable);
             }
@@ -161,12 +157,6 @@ public class CircleRecyclerView extends RecyclerView implements View.OnClickList
             return findViewAt(getWidth() / 2, 0);
         }
         return null;
-    }
-
-    @Override
-    public void onClick(View v) {
-        if (mCenterItemClickListener != null)
-            mCenterItemClickListener.onCenterItemClick(v);
     }
 
     public class CenterRunnable implements Runnable {

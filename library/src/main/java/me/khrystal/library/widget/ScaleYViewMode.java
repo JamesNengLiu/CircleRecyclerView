@@ -11,7 +11,7 @@ import android.view.View;
  * update time:
  * email: 723526676@qq.com
  */
-public class ScaleYViewMode implements ItemViewMode{
+public class ScaleYViewMode implements ItemViewMode {
 
     private float mScaleRatio = 0.001f;
 

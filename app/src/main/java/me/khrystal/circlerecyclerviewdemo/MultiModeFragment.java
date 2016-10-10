@@ -1,6 +1,5 @@
 package me.khrystal.circlerecyclerviewdemo;
 
-import android.annotation.TargetApi;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
@@ -9,22 +8,17 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.bumptech.glide.Glide;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import jp.wasabeef.glide.transformations.CropCircleTransformation;
 import me.khrystal.library.widget.CircleRecyclerView;
 import me.khrystal.library.widget.CircularViewMode;
 import me.khrystal.library.widget.ItemViewMode;
+import me.khrystal.library.widget.OnItemClickListener;
 import me.khrystal.library.widget.RotateXScaleYViewMode;
 import me.khrystal.library.widget.RotateYScaleXViewMode;
 import me.khrystal.library.widget.ScaleXViewMode;
@@ -37,7 +31,9 @@ import me.khrystal.library.widget.ScaleYViewMode;
  * update time:
  * email: 723526676@qq.com
  */
-public class MultiModeFragment extends Fragment{
+public class MultiModeFragment extends Fragment {
+
+    private static final String TAG = MultiModeFragment.class.getSimpleName();
 
     private CircleRecyclerView mCircleRecyclerView;
     private ItemViewMode mItemViewMode;
@@ -68,6 +64,8 @@ public class MultiModeFragment extends Fragment{
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        Log.d(TAG,"onViewCreated");
+
         int modeType = getArguments().getInt("mode_type");
         mCircleRecyclerView = (CircleRecyclerView) view.findViewById(R.id.circle_rv);
 
@@ -78,7 +76,7 @@ public class MultiModeFragment extends Fragment{
                 mLayoutManager = new LinearLayoutManager(getContext());
                 break;
             case 2:
-                mItemViewMode = new ScaleXViewMode();
+                mItemViewMode = new ScaleXViewMode(0.0005f);
                 mLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
                 break;
             case 3:
@@ -106,30 +104,36 @@ public class MultiModeFragment extends Fragment{
         mCircleRecyclerView.setNeedCenterForce(true);
         mCircleRecyclerView.setNeedLoop(!mIsNotLoop);
 
-        mCircleRecyclerView.setOnCenterItemClickListener(new CircleRecyclerView.OnCenterItemClickListener() {
-            @Override
-            public void onCenterItemClick(View v) {
-                Toast.makeText(getContext(), "Center Clicked", Toast.LENGTH_SHORT).show();
-            }
-        });
-
+        mCircleRecyclerView.setClickable(false);
+        mCircleRecyclerView.setFocusable(false);
+        mCircleRecyclerView.setFocusableInTouchMode(false);
+        mCircleRecyclerView.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 
 
         mImgList =  Arrays.asList(mImgs);
         Collections.shuffle(mImgList);
-
-        mCircleRecyclerView.setAdapter(new A());
+        MAdapter adapter = new MAdapter();
+        mCircleRecyclerView.setAdapter(adapter);
+        adapter.setOnItemClickListener(new MyItemOnClickListener());
 
     }
 
-    class A extends RecyclerView.Adapter<VH> {
+    class MAdapter extends RecyclerView.Adapter<VH> {
+
+        private OnItemClickListener tempItemClickListener;
+
+        public void setOnItemClickListener(OnItemClickListener tempItemClickListener){
+            this.tempItemClickListener = tempItemClickListener;
+        }
 
         @Override
         public VH onCreateViewHolder(ViewGroup parent, int viewType) {
             VH h = null;
+            View itemView = null;
             if (mCircleRecyclerView.getLayoutManager().canScrollHorizontally()) {
-                    h = new VH(LayoutInflater.from(getContext())
-                        .inflate(R.layout.item_h, parent, false));
+                itemView = LayoutInflater.from(getContext())
+                        .inflate(R.layout.item_h, parent, false);
+                    h = new VH(itemView);
             } else if (mCircleRecyclerView.getLayoutManager().canScrollVertically()) {
                 if (mItemViewMode instanceof CircularViewMode)
                     h = new VH(LayoutInflater.from(getContext())
@@ -138,17 +142,29 @@ public class MultiModeFragment extends Fragment{
                     h = new VH(LayoutInflater.from(getContext())
                         .inflate(R.layout.item_v, parent, false));
             }
+            itemView.setClickable(true);
+            itemView.setFocusableInTouchMode(true);
+            itemView.setFocusable(true);
+            itemView.setOnClickListener(new View.OnClickListener(){
 
+                @Override
+                public void onClick(View v) {
+                    if(tempItemClickListener!=null)
+                        tempItemClickListener.onItemClick(v, (int) getItemId(mLayoutManager.getPosition(v)));
+                }
+            });
             return h;
         }
 
         @Override
         public void onBindViewHolder(VH holder, int position) {
-            holder.tv.setText("Number :" + (position % mImgList.size()));
-            Glide.with(getContext())
-                    .load(mImgList.get(position % mImgList.size()))
-                    .bitmapTransform(new CropCircleTransformation(getContext()))
-                    .into(holder.iv);
+            int relativePos = (position % mImgList.size());
+            holder.tv.setText("Number :" + relativePos);
+            holder.iv.setImageResource(mImgList.get(relativePos));
+//            Glide.with(getContext())
+//                    .load(mImgList.get(position % mImgList.size()))
+//                    .bitmapTransform(new CropCircleTransformation(getContext()))
+//                    .into(holder.iv);
 
         }
 
@@ -156,10 +172,16 @@ public class MultiModeFragment extends Fragment{
         public int getItemCount() {
             return mIsNotLoop ? mImgList.size() : Integer.MAX_VALUE;
         }
+
+        @Override
+        public long getItemId(int position) {
+            int relativePos = (position % mImgList.size());
+            return relativePos;
+        }
     }
 
 
-    class VH extends RecyclerView.ViewHolder {
+    class VH extends RecyclerView.ViewHolder{
 
         TextView tv;
         ImageView iv;
@@ -168,6 +190,16 @@ public class MultiModeFragment extends Fragment{
             super(itemView);
             tv = (TextView) itemView.findViewById(R.id.item_text);
             iv = (ImageView) itemView.findViewById(R.id.item_img);
+        }
+
+    }
+
+    private class MyItemOnClickListener implements OnItemClickListener {
+
+        @Override
+        public void onItemClick(View view, int pos) {
+
+            Log.d(TAG,"pos="+pos);
         }
     }
 }
